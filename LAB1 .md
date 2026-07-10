@@ -116,7 +116,7 @@ If you can not see the .env file, you can ask Bob to visable it for you, since i
   👉 **[If you don't remember where to get your project id and API key →](prerequisite.md)**
 ---
 You should be able to find you crendentials from your IBM cloud
-## Step 4: Generate `model_gateway.py` with Bob (Bob Advanced Model is Recommended)
+## Step 4: Generate `model_gateway.py` with Bob 
 
 <img width="1067" height="768" alt="Screenshot 2026-06-23 at 2 18 25 PM" src="https://github.com/user-attachments/assets/49a04130-006a-4633-82e2-141589a54cf2" />
 
