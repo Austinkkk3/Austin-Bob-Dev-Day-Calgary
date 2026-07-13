@@ -1,4 +1,4 @@
-# AI Government Expense Tracker — Build Guide
+# Expense Tracker — Build Guide
 
 Complete guide for building an AI-powered government expense tracker using IBM Bob and watsonx.ai.
 
