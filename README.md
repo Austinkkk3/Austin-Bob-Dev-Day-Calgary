@@ -1,7 +1,7 @@
-# 🏛️ AI Government Expense Tracker — Bobathon Lab
+# AI Expense Tracker — Bobathon Lab
 
 
-You're managing government department expenses. You have a pile of receipts —
+You're managing all your expenses. You have a pile of receipts —
 office supply invoices, equipment purchases, service contracts — all in different
 formats, from different vendors.
 
