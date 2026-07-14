@@ -131,16 +131,30 @@ Generate a Python file called model_gateway.py that connects to IBM watsonx.ai u
 
 Requirements:
 
-Load API_KEY, PROJECT_ID, CLOUD_URL, and LLM_NAME from a .env file using python-dotenv
-Implement IAM token exchange: POST to https://iam.cloud.ibm.com/identity/token to get a Bearer token
-Cache the token for 50 minutes (IBM tokens expire after 60 minutes)
-Expose a single public function: invoke_llm(prompt: str) -> str
-Call the watsonx.ai text generation endpoint: {CLOUD_URL}/ml/v1/text/generation?version=2023-05-29
-Use these generation parameters:
-max_new_tokens: 2048
+Environment variables:
+
+Read API_KEY, PROJECT_ID, CLOUD_URL, and LLM_NAME from a .env file using python-dotenv
+Use dotenv_values(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")) to load the file — do NOT use load_dotenv() with no arguments, as it fails when the working directory differs from the file location (e.g. when called from Streamlit)
+Do NOT assign these as module-level variables. Read them fresh from disk inside each function that needs them using a helper _cfg() that calls dotenv_values() — this ensures key rotation takes effect immediately without restarting the process
+IAM token exchange:
+
+POST to https://iam.cloud.ibm.com/identity/token to get a Bearer token
+Cache the token at module level for 50 minutes (IBM tokens expire after 60 minutes)
+On cache miss, call _cfg() to read the latest API_KEY from disk before making the IAM request
+Public interface:
+
+Expose two public functions:
+invoke_llm(prompt: str, max_new_tokens: int = 2048) -> str
+This allows callers to override token budget per use case (e.g. pass max_new_tokens=300 for short summaries, use default 2048 for long extractions)
+Watsonx.ai call:
+
+Endpoint: {CLOUD_URL}/ml/v1/text/generation?version=2023-05-29
+Read CLOUD_URL, LLM_NAME, PROJECT_ID fresh via _cfg() inside invoke_llm()
+Generation parameters:
+max_new_tokens: use the value passed by the caller
 temperature: 0.0
 repetition_penalty: 1.05
-stop_sequences: ["```", "\n"] — stop on code fences and newlines to ensure the model returns only one complete sentence and does not repeat itself
+stop_sequences: ["```"] — stop on code fences only. Do NOT include "\n" — the model begins its response with a newline and including it causes the output to be empty
 Return only the complete Python file with no explanations.
 ```
 
