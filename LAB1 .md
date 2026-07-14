@@ -57,7 +57,7 @@ ai-expense-tracker/
 Open Bob and paste this prompt:
 
 ```
-Create a new project folder called "ai-expense-tracker" on my Desktop.
+Create a new project folder called "ai-expense-tracker" in this workspace.
 Then create a requirements.txt file inside it with these dependencies:
 
 streamlit
