@@ -1,6 +1,6 @@
 # Expense Tracker — Build Guide
 
-Complete guide for building an AI-powered government expense tracker using IBM Bob and watsonx.ai.
+Complete guide for building an AI-powered expense tracker using IBM Bob and watsonx.ai.
 
 This guide assumes no prior context. Follow every step to build a working application from scratch.
 
@@ -15,7 +15,7 @@ This guide assumes no prior context. Follow every step to build a working applic
 ✅ Show 4 metric cards (Files Processed, Line Items, Total Amount, Avg Confidence).
 ✅ Generate 4 interactive Plotly charts (by vendor, by category, by document type).
 ✅ Export data to CSV.
-✅ Generate an AI-written plain-English summary of your government expenses.
+✅ Generate an AI-written plain-English summary of your expenses.
 
 
 ---
@@ -42,7 +42,7 @@ Once you have your credentials ready, continue below to start building!
 You will create these files:
 
 ```
-ai-government-expense-tracker/
+ai-expense-tracker/
 ├── app.py                 # Streamlit UI
 ├── doc_processing.py      # PDF parsing + LLM extraction + charts
 ├── model_gateway.py       # watsonx.ai REST API layer
@@ -57,7 +57,7 @@ ai-government-expense-tracker/
 Open Bob and paste this prompt:
 
 ```
-Create a new project folder called "ai-government-expense-tracker" on my Desktop.
+Create a new project folder called "ai-expense-tracker" on my Desktop.
 Then create a requirements.txt file inside it with these dependencies:
 
 streamlit
@@ -77,7 +77,7 @@ Bob will create the folder and the requirements.txt file for you.
 
 > 💡 **Important**: After Bob creates the folder, navigate to it in your terminal:
 > ```bash
-> cd ~/Desktop/ai-government-expense-tracker
+> cd ~/Desktop/ai-expense-tracker
 > ```
 > Every time you open a new Terminal window, you must run this command first before doing anything else. If you skip this step, all subsequent commands will fail with "module not found" or "file not found" errors.
 
@@ -190,7 +190,7 @@ This file handles PDF parsing and AI-powered data extraction.
 Open Bob and paste this prompt:
 
 ```
-Generate a Python file called doc_processing.py for processing government expense PDF receipts.
+Generate a Python file called doc_processing.py for processing expense PDF receipts.
 
 Requirements:
 
@@ -434,7 +434,7 @@ General rules:
 
 Page setup:
 - Use st.set_page_config with:
-  - page_title="AI Government Expense Tracker"
+  - page_title="AI Expense Tracker"
   - page_icon="🏛️"
   - layout="wide"
 
@@ -473,7 +473,7 @@ Helper function:
 
 Summary prompt requirements:
 - The prompt inside generate_summary(df) must instruct the LLM exactly as follows in meaning:
-  - You are a government expense analyst.
+  - You are a professional expense analyst.
   - Write exactly 3 short sentences.
   - Cover only:
     1. total spend and date range
@@ -613,11 +613,11 @@ The app opens automatically at **http://localhost:8501**.
 
 ## Usage
 
-1. **Upload PDFs**: Click the file uploader and select up to 10 government expense receipt PDFs
+1. **Upload PDFs**: Click the file uploader and select up to 10 expense receipt PDFs
 2. **Submit**: Click "⚡ Submit" to extract data (takes 10–30 seconds per file)
 3. **View Results**: See table with 8 columns and 4 metric cards
 4. **Analyze**: Click "📊 Analyze" to generate 3 interactive charts
-5. **Summarize**: Click "📝 Generate Summary" to get an AI-written summary of your government expenses
+5. **Summarize**: Click "📝 Generate Summary" to get an AI-written summary of your expenses
 6. **Export**: Click "⬇️ Export CSV" to download the extracted data
 
 ---
@@ -638,14 +638,14 @@ The app opens automatically at **http://localhost:8501**.
 
 ## Congratulations! 🎉
 
-You've extended your AI Government Expense Tracker with a full budget tracking system — all built using IBM Bob.
+You've extended your AI Expense Tracker with a full budget tracking system — all built using IBM Bob.
 
 Your app now has:
 - PDF parsing using IBM Docling
 - AI extraction using watsonx.ai Granite 3
 - A clear UI design
 - Interactive charts with Plotly
-- Detailed Summary of all your government spending
+- Detailed Summary of all your spending
 - Easy to download CSV version
 - Budget tracking and overspend alerts
 
@@ -667,4 +667,4 @@ If you encounter issues not covered in this guide:
 
 **End of Build Guide**
 
-You now have a complete, working AI Government Expense Tracker. Happy building! 🚀
+You now have a complete, working AI Expense Tracker. Happy building! 🚀
