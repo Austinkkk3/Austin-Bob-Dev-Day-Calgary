@@ -69,7 +69,7 @@ requests
 
 Return confirmation when done.
 ```
-<img width="1066" height="770" alt="Screenshot 2026-06-23 at 2 30 18 PM" src="https://github.com/user-attachments/assets/c85c8ce9-c113-4711-b820-6c37d728e473" />
+<img width="1066" height="770" alt="Screenshot 2026-06-23 at 2 30 18 PM" src="images/11-lab1-create-project-folder.png" />
 
 
 
@@ -104,7 +104,7 @@ CLOUD_URL= paste_your_URL_here For example: https://us-south.ml.cloud.ibm.com
 LLM_NAME=llama-3-3-70b-instruct
 ```
 
-<img width="948" height="684" alt="Screenshot 2026-06-28 at 2 37 38 PM" src="https://github.com/user-attachments/assets/27b9c5cc-0fc3-4bb1-9503-1d91534d46ba" />
+<img width="948" height="684" alt="Screenshot 2026-06-28 at 2 37 38 PM" src="images/12-lab1-env-file.png" />
 
 
 You should see the four lines above.
@@ -118,7 +118,7 @@ If you can not see the .env file, you can ask Bob to visable it for you, since i
 You should be able to find you crendentials from your IBM cloud
 ## Step 4: Generate `model_gateway.py` with Bob 
 
-<img width="1067" height="768" alt="Screenshot 2026-06-23 at 2 18 25 PM" src="https://github.com/user-attachments/assets/49a04130-006a-4633-82e2-141589a54cf2" />
+<img width="1067" height="768" alt="Screenshot 2026-06-23 at 2 18 25 PM" src="images/13-lab1-model-gateway.png" />
 
 
 This file handles the connection to watsonx.ai using the REST API.
@@ -162,7 +162,7 @@ Return only the complete Python file with no explanations.
 
 You can simply ask Bob to do that for you!!!
 
-<img width="276" height="276" alt="Screenshot 2026-06-28 at 3 02 07 PM" src="https://github.com/user-attachments/assets/b1635058-2ddc-42c1-a97d-702473f328af" />
+<img width="276" height="276" alt="Screenshot 2026-06-28 at 3 02 07 PM" src="images/14-lab1-verify-api-key.png" />
 
 Or the traditional way
 
@@ -195,7 +195,7 @@ source venv/bin/activate && python3 -c "from model_gateway import invoke_llm; pr
 ## Step 5: Generate `doc_processing.py` with Bob
 
 
-<img width="1269" height="843" alt="Screenshot 2026-06-28 at 3 20 10 PM" src="https://github.com/user-attachments/assets/8e327437-c42e-4df3-a43b-881aa503e340" />
+<img width="1269" height="843" alt="Screenshot 2026-06-28 at 3 20 10 PM" src="images/15-lab1-doc-processing.png" />
 
 
 
@@ -421,7 +421,7 @@ Return only the complete Python file with no explanations.
 ## Step 6 — Generate `app.py` with Bob
 
 
-<img width="1269" height="843" alt="Screenshot 2026-06-28 at 3 27 20 PM" src="https://github.com/user-attachments/assets/27b21436-cb0c-468d-b91b-4f7dd561a144" />
+<img width="1269" height="843" alt="Screenshot 2026-06-28 at 3 27 20 PM" src="images/16-lab1-app-py.png" />
 
 Open Bob and paste this prompt:
 ```
@@ -621,7 +621,7 @@ cd /Users/austinzhang/Desktop/Test\ Bob && streamlit run app.py
 
 The app opens automatically at **http://localhost:8501**.
 
-<img width="1322" height="856" alt="Screenshot 2026-06-28 at 3 32 55 PM" src="https://github.com/user-attachments/assets/0c3f65ac-5897-43e9-85df-7402c7570b67" />
+<img width="1322" height="856" alt="Screenshot 2026-06-28 at 3 32 55 PM" src="images/17-lab1-running-app.png" />
 
 
 
