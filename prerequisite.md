@@ -117,7 +117,7 @@ creation was successful and that your account is activated.
 Once you and your team are assigned Cloud environments, be sure to accept the environment
 cluster invitation that will be sent to your email. It should look something like this:
 
-<img width="599" height="590" alt="Screenshot 2026-06-11 at 10 29 03 AM" src="https://github.com/user-attachments/assets/3bd4a682-d20c-4852-bde0-aaaa96d80b8f" />
+<img width="599" height="590" alt="Screenshot 2026-06-11 at 10 29 03 AM" src="images/01-cloud-invite-email.png" />
 
 
 **IMPORTANT: You must click the "Join now" to get access, and ensure you log into IBM Cloud**
@@ -139,44 +139,44 @@ Before writing any code, you need three pieces of information from IBM Cloud.
 2. Click on the highlighted icon with the arrow. If you expand the display with the hamburger menu
 icon on the top-left, you will see this is the Resource list
 
- <img width="1009" height="541" alt="Screenshot 2026-06-11 at 10 31 32 AM" src="https://github.com/user-attachments/assets/ab27273b-abdf-44d9-8790-44c728d283da" />
+ <img width="1009" height="541" alt="Screenshot 2026-06-11 at 10 31 32 AM" src="images/02-resource-list-icon.png" />
 
 4. Click on the down arrow beside AI/Machine Learning. The window will expand to show multiple
 resources. Click the resource name with the product watsonx.ai Runtime.
-<img width="1004" height="647" alt="Screenshot 2026-06-11 at 10 32 28 AM" src="https://github.com/user-attachments/assets/8f4d9a83-6798-494e-83b3-4cfe408360b4" />
+<img width="1004" height="647" alt="Screenshot 2026-06-11 at 10 32 28 AM" src="images/03-ai-ml-resource-list.png" />
 
 
  or
  
-<img width="1001" height="542" alt="Screenshot 2026-06-11 at 10 33 20 AM" src="https://github.com/user-attachments/assets/fc1b9117-5329-41b0-a1b2-e700cb62a593" />
+<img width="1001" height="542" alt="Screenshot 2026-06-11 at 10 33 20 AM" src="images/04-ai-ml-resource-list-alt.png" />
 
 
 4. Launch in IBM WatsonX
-<img width="1015" height="542" alt="Screenshot 2026-06-11 at 10 33 48 AM" src="https://github.com/user-attachments/assets/cedde2d9-06b8-49f8-a966-08729f286587" />
+<img width="1015" height="542" alt="Screenshot 2026-06-11 at 10 33 48 AM" src="images/05-launch-in-watsonx.png" />
 
 
 5. Scroll to find the **Projects** tab.
-6. <img width="980" height="522" alt="Screenshot 2026-06-11 at 10 36 56 AM" src="https://github.com/user-attachments/assets/967977c9-46ab-46bb-a346-a1735a1921f1" />
+6. <img width="980" height="522" alt="Screenshot 2026-06-11 at 10 36 56 AM" src="images/06-watsonx-welcome-projects.png" />
 
 
 
 7. Create a new project and give it a name, then click **Create**.
 8. Scroll down to find **Storage Service** (Pick the same one as your resource name)
-9. <img width="980" height="522" alt="Screenshot 2026-06-11 at 10 37 22 AM" src="https://github.com/user-attachments/assets/2fde456d-9e9f-4e52-bab8-9fcd98dc7c5b" />
+9. <img width="980" height="522" alt="Screenshot 2026-06-11 at 10 37 22 AM" src="images/07-storage-service-dropdown.png" />
 
 
 10. Navigate to **Manage** and copy the **Project ID**, then save it in your notepad.
 11. In the same Manage page, click on **Services and Integration**.
-12. <img width="1512" height="812" alt="Untitled3" src="https://github.com/user-attachments/assets/22a7873a-1a77-4c9f-ab93-2bd14284ce09" />
+12. <img width="1512" height="812" alt="Untitled3" src="images/08-services-integrations.png" />
 
 
 13. Click **Associate Service**, check the **watsonx Runtime** instance (Pick the same one as your resouce name), and confirm.
-14.<img width="1512" height="812" alt="Untitled4" src="https://github.com/user-attachments/assets/f1827dbc-80fd-48af-bb7e-2cf0b0a094dc" />
+14.<img width="1512" height="812" alt="Untitled4" src="images/09-associate-service.png" />
 
 
 15. Click the three lines (hamburger menu) and click **Home**.
 16. Find the **Developer Access** section
-<img width="1005" height="538" alt="Screenshot 2026-06-11 at 10 39 14 AM" src="https://github.com/user-attachments/assets/b47b4875-7085-4e39-a4ca-d760850dcdf3" />
+<img width="1005" height="538" alt="Screenshot 2026-06-11 at 10 39 14 AM" src="images/10-developer-access.png" />
 
 
 17. Select your project from the dropdown.
