@@ -144,7 +144,7 @@ On cache miss, call _cfg() to read the latest API_KEY from disk before making th
 Public interface:
 
 Expose two public functions:
-invoke_llm(prompt: str, max_new_tokens: int = 2048) -> str
+invoke_llm(prompt: str, max_new_tokens: int = 4096) -> str
 This allows callers to override token budget per use case (e.g. pass max_new_tokens=300 for short summaries, use default 2048 for long extractions)
 Watsonx.ai call:
 
