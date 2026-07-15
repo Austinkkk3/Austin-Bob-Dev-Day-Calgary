@@ -44,11 +44,10 @@ Tell Bob what you want in plain English — here are some ideas:
 ### How to Use Bob for This
 
 1. Open Bob → switch to **Ask Mode**
-2. <img width="981" height="691" alt="Screenshot 2026-06-11 at 2 26 33 PM" src="https://github.com/user-attachments/assets/8987e26a-8bc3-4ca8-b57e-4c7a62ce3997" />
 
-3. Describe what you want — be as specific or as vague as you like
-4. Review what Bob suggests, ask follow-up questions, iterate
-5. When you're happy, click **Apply** and restart the app
+2. Describe what you want — be as specific or as vague as you like
+3. Review what Bob suggests, ask follow-up questions, iterate
+4. When you're happy, click **Apply** and restart the app
 
 > 💡 **Tip — Brand Matching:**
 > Take a screenshot of your company's website or internal portal,
