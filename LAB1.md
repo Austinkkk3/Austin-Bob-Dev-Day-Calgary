@@ -219,6 +219,9 @@ PDF parsing:
     pipeline_options = PdfPipelineOptions()
     pipeline_options.do_ocr = True
     pipeline_options.do_table_structure = True
+- Add EasyOcrOptions to avoid OCR backend errors on scanned PDFs:
+    from docling.datamodel.pipeline_options import EasyOcrOptions
+    pipeline_options.ocr_options = EasyOcrOptions()
     converter = DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
     )
