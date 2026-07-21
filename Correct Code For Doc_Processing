@@ -1,0 +1,513 @@
+import hashlib
+import json
+import os
+import re
+import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import pandas as pd
+import plotly.graph_objects as go
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions, EasyOcrOptions
+from docling.document_converter import DocumentConverter, PdfFormatOption
+
+from model_gateway import invoke_llm
+
+# ---------------------------------------------------------------------------
+# Module-level singletons
+# ---------------------------------------------------------------------------
+
+_pipeline_options = PdfPipelineOptions()
+_pipeline_options.do_ocr = True
+_pipeline_options.do_table_structure = True
+_pipeline_options.ocr_options = EasyOcrOptions()
+
+_converter = DocumentConverter(
+    format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=_pipeline_options)}
+)
+
+_file_cache: dict = {}
+
+# ---------------------------------------------------------------------------
+# Cache helpers
+# ---------------------------------------------------------------------------
+
+def clear_cache():
+    global _file_cache
+    _file_cache = {}
+
+
+def _md5(data: bytes) -> str:
+    return hashlib.md5(data).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# PDF -> Markdown
+# ---------------------------------------------------------------------------
+
+def _pdf_to_markdown(pdf_bytes: bytes) -> str:
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(pdf_bytes)
+            tmp_path = tmp.name
+        result = _converter.convert(tmp_path)
+        return result.document.export_to_markdown()
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Document type detection
+# ---------------------------------------------------------------------------
+
+_TYPE_KEYWORDS = {
+    "office_supplies": [
+        "office", "supplies", "paper", "pens", "folders", "stationery",
+        "toner", "ink", "printer", "desk", "chair", "filing",
+    ],
+    "equipment": [
+        "equipment", "computer", "laptop", "monitor", "keyboard", "mouse",
+        "hardware", "software", "technology", "device", "machinery",
+    ],
+    "services": [
+        "services", "consulting", "maintenance", "repair", "cleaning",
+        "security", "professional", "contractor", "vendor", "support",
+    ],
+    "utilities": [
+        "utilities", "electricity", "water", "gas", "internet", "phone",
+        "telecommunications", "energy", "power", "heating", "cooling",
+    ],
+}
+
+
+def _detect_doc_type(filename: str, text: str) -> str:
+    fn_lower = filename.lower()
+    text_lower = text.lower()
+    scores = {}
+    for doc_type, keywords in _TYPE_KEYWORDS.items():
+        score = 0
+        for kw in keywords:
+            if kw in fn_lower:
+                score += 3
+            if kw in text_lower:
+                score += 1
+        scores[doc_type] = score
+    best = max(scores, key=lambda k: scores[k])
+    if scores[best] == 0:
+        return "generic"
+    return best
+
+
+# ---------------------------------------------------------------------------
+# LLM prompts
+# ---------------------------------------------------------------------------
+
+def _get_extraction_prompt(doc_type: str, text: str) -> str:
+    step2_suffix = (
+        "\n\nSTEP 2: Now convert the table above into a JSON array. Each row becomes a JSON object with these fields:\n"
+        "- date (from Date column)\n"
+        "- vendor (from Vendor column)\n"
+        "- doc_type (leave as empty string)\n"
+        "- category (from Category column)\n"
+        "- description (from Description column)\n"
+        "- currency (from Currency column)\n"
+        "- amount (from Amount column)\n"
+        "- confidence (set to 0.9)\n\n"
+        "Return ONLY the JSON array with no markdown, no code fences, no explanation:\n"
+        "[\""
+    )
+
+    rules = (
+        "Rules:\n"
+        "- One line per charge\n"
+        "- Date format: YYYY-MM-DD (or leave empty if not found)\n"
+        "- Amount: numeric only (no currency symbols)\n"
+        "- Include header row\n"
+        "- Use | to separate columns"
+    )
+
+    if doc_type == "office_supplies":
+        categories = "Paper Products, Writing Instruments, Filing & Storage, Desk Accessories, Printer Supplies, Technology Accessories, Furniture, Taxes & Fees, Shipping, Miscellaneous"
+        header = "Analyze this office supplies invoice and extract all charges. Ignore any [image] tags."
+    elif doc_type == "equipment":
+        categories = "Computer Hardware, Software Licenses, Peripherals, Networking Equipment, Maintenance, Installation, Taxes & Fees, Miscellaneous"
+        header = "Analyze this equipment invoice and extract all charges. Ignore any [image] tags."
+    elif doc_type == "services":
+        categories = "Consulting, Maintenance, Repair, Cleaning, Security, Professional Services, Contractor Fees, Taxes & Fees, Miscellaneous"
+        header = "Analyze this services invoice and extract all charges. Ignore any [image] tags."
+    elif doc_type == "utilities":
+        categories = "Electricity, Water, Gas, Internet, Telephone, Telecommunications, Energy, Taxes & Fees, Service Charges, Miscellaneous"
+        header = "Analyze this utilities invoice and extract all charges. Ignore any [image] tags."
+    else:
+        categories = "Office Supplies, Equipment, Services, Utilities, Maintenance, Professional Services, Technology, Taxes & Fees, Miscellaneous"
+        header = "Analyze this invoice and extract all charges. Ignore any [image] tags."
+
+    prompt = (
+        f"{header}\n\n"
+        "STEP 1: Create a table with these columns separated by | (pipe):\n"
+        "Date | Vendor | Category | Description | Currency | Amount\n\n"
+        f"Categories: {categories}\n\n"
+        f"{rules}\n\n"
+        f"Document:\n{text}\n\n"
+        "Table:\n"
+        f"{step2_suffix}"
+    )
+    return prompt
+
+
+# ---------------------------------------------------------------------------
+# Vendor extraction
+# ---------------------------------------------------------------------------
+
+_HEADER_KEYWORDS = {
+    "invoice", "folio", "date", "page", "guest", "number",
+    "charges", "credits", "description",
+}
+
+
+def _extract_vendor_from_text(text: str) -> str:
+    lines = text.splitlines()[:10]
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        lower = stripped.lower()
+        if any(kw in lower for kw in _HEADER_KEYWORDS):
+            continue
+        if len(stripped) >= 3 and re.search(r"[a-zA-Z]", stripped):
+            return stripped
+    top_text = " ".join(lines)
+    match = re.search(r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)", top_text)
+    if match:
+        return match.group(1)
+    return "Unknown"
+
+
+# ---------------------------------------------------------------------------
+# Amount parsing
+# ---------------------------------------------------------------------------
+
+def _parse_amount(amount_str) -> float:
+    if amount_str is None:
+        return 0.0
+    s = str(amount_str).strip()
+    s = re.sub(r"[$€£¥₹]", "", s).strip()
+    if not s:
+        return 0.0
+    try:
+        if re.match(r"^-?\d{1,3}(\.\d{3})+(,\d+)$", s):
+            s = s.replace(".", "").replace(",", ".")
+        elif re.match(r"^-?\d+(,\d+)$", s):
+            s = s.replace(",", ".")
+        else:
+            s = s.replace(",", "")
+        return abs(float(s))
+    except (ValueError, TypeError):
+        return 0.0
+
+
+# ---------------------------------------------------------------------------
+# JSON parsing from LLM output
+# ---------------------------------------------------------------------------
+
+def _parse_json_from_llm(llm_output: str) -> list:
+    raw = "[" + llm_output
+    raw = re.sub(r"```json", "", raw)
+    raw = re.sub(r"```", "", raw)
+    raw = raw.strip()
+
+    try:
+        start = raw.find("[")
+        if start != -1:
+            depth = 0
+            for i, ch in enumerate(raw[start:], start):
+                if ch == "[":
+                    depth += 1
+                elif ch == "]":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = raw[start:i + 1]
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, list):
+                            return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    try:
+        objects = []
+        depth = 0
+        start = None
+        for i, ch in enumerate(raw):
+            if ch == "{":
+                if depth == 0:
+                    start = i
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0 and start is not None:
+                    try:
+                        obj = json.loads(raw[start:i + 1])
+                        objects.append(obj)
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+                    start = None
+        if objects:
+            return objects
+    except Exception:
+        pass
+
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Normalization
+# ---------------------------------------------------------------------------
+
+_DOC_TYPE_LABELS = {
+    "office_supplies": "Office Supplies",
+    "equipment": "Equipment",
+    "services": "Services",
+    "utilities": "Utilities",
+    "generic": "",
+}
+
+_REQUIRED_STR_FIELDS = ["date", "vendor", "doc_type", "category", "description", "currency"]
+
+
+def _normalize_expenses(rows: list, filename: str, text: str) -> list:
+    doc_type_key = _detect_doc_type(filename, text)
+    doc_type_label = _DOC_TYPE_LABELS.get(doc_type_key, "")
+
+    normalized = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        for field in _REQUIRED_STR_FIELDS:
+            if field not in row or row[field] is None:
+                row[field] = ""
+        if "amount" not in row or row["amount"] is None:
+            row["amount"] = 0.0
+        if "confidence" not in row or row["confidence"] is None:
+            row["confidence"] = 0.0
+
+        for field in _REQUIRED_STR_FIELDS:
+            row[field] = str(row[field]).strip()
+
+        if not row["vendor"] or row["vendor"] == "Unknown":
+            row["vendor"] = _extract_vendor_from_text(text)
+
+        row["doc_type"] = doc_type_label
+        row["amount"] = _parse_amount(row["amount"])
+
+        try:
+            row["confidence"] = float(row["confidence"])
+        except (ValueError, TypeError):
+            row["confidence"] = 0.0
+
+        normalized.append(row)
+    return normalized
+
+
+# ---------------------------------------------------------------------------
+# Single-file processing
+# ---------------------------------------------------------------------------
+
+def _process_single_file(filename: str, pdf_bytes: bytes) -> tuple:
+    file_hash = _md5(pdf_bytes)
+    if file_hash in _file_cache:
+        rows = _file_cache[file_hash]
+        debug = f"Cache hit: {len(rows)} rows"
+        return rows, debug
+
+    text = _pdf_to_markdown(pdf_bytes)
+    doc_type = _detect_doc_type(filename, text)
+    prompt = _get_extraction_prompt(doc_type, text)
+    llm_output = invoke_llm(prompt)
+    raw_rows = _parse_json_from_llm(llm_output)
+    rows = _normalize_expenses(raw_rows, filename, text)
+
+    debug = (
+        f"doc_type={doc_type}, "
+        f"text_len={len(text)}, "
+        f"llm_output_len={len(llm_output)}, "
+        f"raw_rows={len(raw_rows)}, "
+        f"normalized_rows={len(rows)}"
+    )
+
+    _file_cache[file_hash] = rows
+    return rows, debug
+
+
+# ---------------------------------------------------------------------------
+# Public: process_invoices
+# ---------------------------------------------------------------------------
+
+def process_invoices(uploaded_files, max_workers: int = 2, progress_callback=None):
+    columns = ["Date", "Vendor", "Doc Type", "Category", "Description", "Currency", "Amount", "Confidence"]
+
+    all_rows = []
+    debug_info = {}
+    total = len(uploaded_files)
+    completed = 0
+
+    def _task(item):
+        filename, pdf_bytes = item
+        rows, debug = _process_single_file(filename, pdf_bytes)
+        return filename, rows, debug
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(_task, (f.name, f.getvalue() if hasattr(f, "getvalue") else f.read())): f
+            for f in uploaded_files
+        }
+        for future in as_completed(futures):
+            f = futures[future]
+            filename = f.name if hasattr(f, "name") else str(f)
+            try:
+                filename, rows, debug = future.result()
+                if len(rows) == 0:
+                    debug_info[filename] = f"ERROR: 0 rows extracted — {debug}"
+                else:
+                    debug_info[filename] = debug
+                    all_rows.extend(rows)
+            except Exception as exc:
+                debug_info[filename] = f"ERROR: {exc}"
+                print(f"[ERROR] {filename}: {exc}")
+            finally:
+                completed += 1
+                if progress_callback is not None:
+                    progress_callback(completed, total, filename)
+
+    if not all_rows:
+        return pd.DataFrame(columns=columns), debug_info
+
+    records = []
+    for row in all_rows:
+        records.append({
+            "Date": row.get("date", ""),
+            "Vendor": row.get("vendor", ""),
+            "Doc Type": row.get("doc_type", ""),
+            "Category": row.get("category", ""),
+            "Description": row.get("description", ""),
+            "Currency": row.get("currency", ""),
+            "Amount": row.get("amount", 0.0),
+            "Confidence": row.get("confidence", 0.0),
+        })
+
+    df = pd.DataFrame(records, columns=columns)
+    return df, debug_info
+
+
+# ---------------------------------------------------------------------------
+# Public: analyze_invoices
+# ---------------------------------------------------------------------------
+
+_TRANSPARENT = "rgba(0,0,0,0)"
+_FONT = {"family": "Inter, sans-serif", "size": 13, "color": "#1f2328"}
+
+_CATEGORY_COLORS = {
+    "Office Supplies": "#3B82F6",
+    "Equipment": "#A855F7",
+    "Services": "#10B981",
+    "Utilities": "#F59E0B",
+}
+
+_BASE_LAYOUT_COMMON = dict(
+    font=_FONT,
+    plot_bgcolor=_TRANSPARENT,
+    paper_bgcolor=_TRANSPARENT,
+)
+
+
+def analyze_invoices(df, budgets: dict = None):
+    if budgets is None:
+        budgets = {"Office Supplies": 0, "Equipment": 0, "Services": 0, "Utilities": 0}
+
+    vendor_totals = df.groupby("Vendor")["Amount"].sum().sort_values(ascending=True)
+    fig1 = go.Figure(go.Bar(
+        x=vendor_totals.values,
+        y=vendor_totals.index,
+        orientation="h",
+        marker_color="#3B82F6",
+    ))
+    fig1.update_layout(
+        **_BASE_LAYOUT_COMMON,
+        title="Total Expenses by Vendor",
+        xaxis=dict(showgrid=True, gridcolor="#e5e7eb", zeroline=False),
+        yaxis=dict(showgrid=False, zeroline=False),
+    )
+
+    cat_totals = df.groupby("Category")["Amount"].sum()
+    fig2 = go.Figure(go.Pie(
+        labels=cat_totals.index,
+        values=cat_totals.values,
+        hole=0.4,
+    ))
+    fig2.update_layout(
+        **_BASE_LAYOUT_COMMON,
+        title="Expenses by Category",
+    )
+
+    dt_totals = df.groupby("Doc Type")["Amount"].sum()
+    colors = [_CATEGORY_COLORS.get(dt, "#6B7280") for dt in dt_totals.index]
+    fig3 = go.Figure(go.Bar(
+        x=dt_totals.index,
+        y=dt_totals.values,
+        marker_color=colors,
+    ))
+    fig3.update_layout(
+        **_BASE_LAYOUT_COMMON,
+        title="Expenses by Document Type",
+        xaxis=dict(showgrid=False, zeroline=False),
+        yaxis=dict(showgrid=True, gridcolor="#e5e7eb", zeroline=False),
+    )
+
+    budget_categories = ["Office Supplies", "Equipment", "Services", "Utilities"]
+    actual_vals = []
+    budget_vals = []
+    actual_colors = []
+    budget_border_colors = []
+
+    for cat in budget_categories:
+        actual = df[df["Doc Type"] == cat]["Amount"].sum()
+        actual_vals.append(actual)
+        budget_vals.append(budgets.get(cat, 0))
+        c = _CATEGORY_COLORS.get(cat, "#6B7280")
+        actual_colors.append(c)
+        budget_border_colors.append(c)
+
+    fig4 = go.Figure()
+    fig4.add_trace(go.Bar(
+        name="Actual",
+        x=budget_categories,
+        y=actual_vals,
+        marker_color=actual_colors,
+    ))
+    fig4.add_trace(go.Bar(
+        name="Budget",
+        x=budget_categories,
+        y=budget_vals,
+        marker=dict(
+            color="rgba(0,0,0,0.15)",
+            line=dict(color=budget_border_colors, width=2),
+        ),
+    ))
+    fig4.update_layout(
+        **_BASE_LAYOUT_COMMON,
+        title="Budget vs Actual by Category",
+        xaxis=dict(showgrid=False, zeroline=False),
+        yaxis=dict(showgrid=True, gridcolor="#e5e7eb", zeroline=False),
+        barmode="overlay",
+        legend=dict(orientation="h", y=1.1),
+    )
+
+    return fig1, fig2, fig3, fig4
