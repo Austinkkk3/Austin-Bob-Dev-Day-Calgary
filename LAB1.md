@@ -66,6 +66,7 @@ plotly
 docling
 python-dotenv
 requests
+easyocr
 
 Return confirmation when done.
 ```
